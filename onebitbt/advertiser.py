@@ -35,8 +35,10 @@ TABLE = np.load('data/gmsk_2402e6_5e9.npy').flatten()
 class BLEAdvertiser(Elaboratable):
     def __init__(self):
         self.refclk = Signal()
-        self.serdes = get_serdes_implementation()(line_rate=5.0e9, refclk_freq=125e6) #, internal_refclk=self.refclk)
-
+        #self.serdes = get_serdes_implementation()(line_rate=5.0e9, refclk_freq=125e6) #, internal_refclk=self.refclk)
+        #self.serdes = get_serdes_implementation()(self.refclk, 5.0e9) #, internal_refclk=self.refclk)
+        self.serdes = get_serdes_implementation()(5e9, 125e6)
+        #self.serdes = get_serdes_implementation()()
     def elaborate(self, platform):
         m = Module()
         m.submodules.serdes = serdes = self.serdes

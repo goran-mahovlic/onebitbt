@@ -1,6 +1,6 @@
 import sys
 
-from nmigen import Elaboratable, Module, Memory, Signal, ClockSignal, signed
+from nmigen import Elaboratable, Module, Memory, Signal, ClockDomain, ClockSignal, signed
 from nmigen.build import Resource, Pins, Attrs
 
 from alldigitalradio.io.generic_serdes import get_serdes_implementation
@@ -12,7 +12,8 @@ from alldigitalradio.trig import MagnitudeApproximator
 from alldigitalradio.sync import CorrelativeSynchronizer
 
 from onebitbt.parser import PacketParser
-from onebitbt.clocking import ClockDivider4
+from onebitbt.clocking_ecp5 import ClockDivider4
+from alldigitalradio.io.ecp5 import PLL
 
 from serialcommander.uart import UART
 from serialcommander.commander import Commander
@@ -21,7 +22,7 @@ from serialcommander.toggler import Toggler
 
 class BLERadio(Elaboratable):
     def __init__(self):
-        self.serdes = get_serdes_implementation()()
+        self.serdes = get_serdes_implementation()(5e9, 125e6)
         self.uart = UART(int(25e6/115200))
 
     def elaborate(self, platform):
@@ -43,7 +44,14 @@ class BLERadio(Elaboratable):
             ]
 
         # Set up a clock divider on the RX clock because we can't do everything at 250MHz
-        m.submodules.clockdivider = ClockDivider4("rx", "rxdiv4")
+        #m.submodules.clockdivider = ClockDivider4("rx", "rxdiv4")
+
+        # this will not work
+        rxdiv4 = None
+        self.pll = PLL(rxdiv4, 250, 62)
+        m.domains += ClockDomain("rxdiv4", reset_less=True)
+        #m.d.comb += ClockSignal("rxdiv4").eq(rxdiv4)
+        #self.pll = PLL(rxdiv4, 250, 62)
 
         # Mix the incoming data down to BB
         m.submodules.mixerHigh = mixerHigh = SummingMixer(sample_rate=5e9, frequency=2.40225e9, max_error=0.0001, domain="rx")
